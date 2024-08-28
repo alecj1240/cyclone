@@ -4,6 +4,9 @@ require 'googleauth/stores/file_token_store'
 require 'fileutils'
 require 'base64'
 require 'openai'
+require 'dotenv'
+
+Dotenv.load
 
 SCOPES = ['https://mail.google.com/'].freeze
 
@@ -37,11 +40,7 @@ def get_openai_client
 end
 
 def get_user_name
-  print "Enter your first name: "
-  user_first_name = gets.chomp
-  print "Enter your last name: "
-  user_last_name = gets.chomp
-  [user_first_name, user_last_name]
+  [ENV.fetch("USER_FIRST_NAME"), ENV.fetch("USER_LAST_NAME")]
 end
 
 def fetch_emails(gmail, page_token)
