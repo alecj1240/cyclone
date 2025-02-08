@@ -56,6 +56,18 @@ end
 
 require 'base64'
 
+def clean_email_body(body)
+  return '' if body.nil? || body.empty?
+
+  body
+    .gsub(/[\r\n]+\s*[\r\n]+/, "\n\n")  # Remove multiple blank lines and whitespace
+    .gsub(/https?:\/\/[^\s]+\s+/, '')    # Remove HTML-style links
+    .gsub(/&[a-zA-Z0-9#]+;/, '')         # Remove HTML entities
+    .gsub(/^\s*[\r\n]/m, '')             # Remove empty lines that just contain whitespace
+    .gsub(/\s+/, ' ')                    # Remove multiple spaces
+    .strip                               # Clean up any remaining whitespace at start/end
+end
+
 def parse_email_data(gmail, message_info)
   begin
     msg = gmail.get_user_message('me', message_info.id, format: 'full')
@@ -81,8 +93,10 @@ def parse_email_data(gmail, message_info)
       end
     end
 
-    # Ensure body_data is UTF-8 encoded
-    body_data = body_data.force_encoding('UTF-8').encode('UTF-8', invalid: :replace, undef: :replace, replace: '')
+    # Ensure body_data is UTF-8 encoded and cleaned
+    body_data = body_data.force_encoding('UTF-8')
+      .encode('UTF-8', invalid: :replace, undef: :replace, replace: '')
+    body_data = clean_email_body(body_data)
 
     {
       subject: subject,
@@ -121,11 +135,12 @@ def evaluate_email(email_data, user_first_name, user_last_name, client)
              "from his personal (i.e., not work) account. Your primary focus is to ensure " \
              "that emails from individual people, whether they are known family members (with the " \
              "same last name), close acquaintances, or potential contacts #{user_first_name} might be interested " \
-             "in hearing from, are not ignored. You need to distinguish between promotional, automated, " \
-             "or mass-sent emails and personal communications.\n\n" \
+             "in hearing from, are not ignored." \
+             "You need to distinguish between promotional, automated, or mass-sent emails and personal or " \
+             "important communications.\n\n" \
              "Respond with \"True\" if the email is promotional and should be ignored based on " \
              "the below criteria, or \"False\" otherwise. Remember to prioritize personal " \
-             "communications and ensure emails from genuine individuals are not filtered out.\n\n" \
+             "and important communications, ensuring emails from genuine individuals or related to important matters are not filtered out.\n\n" \
              "Criteria for Ignoring an Email:\n" \
              "- The email is promotional: It contains offers, discounts, or is marketing a product " \
              "or service.\n" \
@@ -133,8 +148,7 @@ def evaluate_email(email_data, user_first_name, user_last_name, client)
              "real person.\n" \
              "- The email appears to be mass-sent or from a non-essential mailing list: It does not " \
              "address #{user_first_name} by name, lacks personal context that would indicate it's personally written " \
-             "to her, or is from a mailing list that does not pertain to his interests or work.\n\n" \
-             "Special Consideration:\n" \
+             "to her, or is from a mailing list that does not pertain to his interests, work, or school.\n\n" \
              "- Exception: If the email is from an actual person, especially a family member (with the " \
              "same last name), a close acquaintance, or a potential contact #{user_first_name} might be interested in, " \
              "and contains personalized information indicating a one-to-one communication, do not mark " \
@@ -142,7 +156,7 @@ def evaluate_email(email_data, user_first_name, user_last_name, client)
              "- Additionally, do not ignore emails requiring an action to be taken for important matters, " \
              "such as needing to send a payment via Venmo, but ignore requests for non-essential actions " \
              "like purchasing discounted items or signing up for rewards programs.\n\n" \
-             "Be cautious: If there's any doubt about whether an email is promotional or personal, " \
+             "Be cautious: If there's any doubt about whether an email is promotional, personal, or related to work/school, " \
              "respond with \"False\".\n\n" \
              "The user message you will receive will have the following format:\n" \
              "Subject: <email subject>\n" \
