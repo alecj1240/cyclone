@@ -128,45 +128,33 @@ def evaluate_email(email_data, user_first_name, user_last_name, client)
   max_email_len = 3000
   user_first_name = user_first_name.strip
   user_last_name = user_last_name.strip
+  system_prompt = <<~PROMPT
+    You are an assistant helping manage the Gmail inbox of #{user_first_name} #{user_last_name}. Your job is to decide whether an email should be ignored because it is promotional, automated, or spam.
+
+    Respond with "True" if the email is promotional, automated, or spam. Otherwise respond with "False".
+
+    When evaluating, consider:
+    - Promotional content offering discounts or marketing a product or service.
+    - Automated emails from systems or services.
+    - Messages sent to mailing lists or without personal context.
+    - Suspicious links or mismatched details that indicate the email might be spam.
+    - Personal messages from individuals, especially family members with the same last name, close acquaintances, or potential contacts, should not be ignored.
+    - Do not ignore emails that require important action.
+
+    When unsure, respond "False".
+
+    The user will provide email details in the following format:
+    Subject: <email subject>
+    To: <to names, to emails>
+    From: <from name, from email>
+    Cc: <cc names, cc emails>
+    Gmail labels: <labels>
+    Body: <plaintext body>
+  PROMPT
+
   system_message = {
     role: "system",
-    content: "Your task is to assist in managing the Gmail inbox of a busy individual, " \
-             "#{user_first_name} #{user_last_name}, by filtering out promotional emails " \
-             "from his personal (i.e., not work) account. Your primary focus is to ensure " \
-             "that emails from individual people, whether they are known family members (with the " \
-             "same last name), close acquaintances, or potential contacts #{user_first_name} might be interested " \
-             "in hearing from, are not ignored." \
-             "You need to distinguish between promotional, automated, or mass-sent emails and personal or " \
-             "important communications.\n\n" \
-             "Respond with \"True\" if the email is promotional and should be ignored based on " \
-             "the below criteria, or \"False\" otherwise. Remember to prioritize personal " \
-             "and important communications, ensuring emails from genuine individuals or related to important matters are not filtered out.\n\n" \
-             "Criteria for Ignoring an Email:\n" \
-             "- The email is promotional: It contains offers, discounts, or is marketing a product " \
-             "or service.\n" \
-             "- The email is automated: It is sent by a system or service automatically, and not a " \
-             "real person.\n" \
-             "- The email appears to be mass-sent or from a non-essential mailing list: It does not " \
-             "address #{user_first_name} by name, lacks personal context that would indicate it's personally written " \
-             "to her, or is from a mailing list that does not pertain to his interests, work, or school.\n\n" \
-             "- Exception: If the email is from an actual person, especially a family member (with the " \
-             "same last name), a close acquaintance, or a potential contact #{user_first_name} might be interested in, " \
-             "and contains personalized information indicating a one-to-one communication, do not mark " \
-             "it for ignoring regardless of the promotional content.\n\n" \
-             "- Additionally, do not ignore emails requiring an action to be taken for important matters, " \
-             "such as needing to send a payment via Venmo, but ignore requests for non-essential actions " \
-             "like purchasing discounted items or signing up for rewards programs.\n\n" \
-             "Be cautious: If there's any doubt about whether an email is promotional, personal, or related to work/school, " \
-             "respond with \"False\".\n\n" \
-             "The user message you will receive will have the following format:\n" \
-             "Subject: <email subject>\n" \
-             "To: <to names, to emails>\n" \
-             "From: <from name, from email>\n" \
-             "Cc: <cc names, cc emails>\n" \
-             "Gmail labels: <labels>\n" \
-             "Body: <plaintext body of the email>\n\n" \
-             "Your response must be:\n" \
-             "\"True\" or \"False\""
+    content: system_prompt
   }
 
   truncated_body = email_data[:body] ? (email_data[:body][0...max_email_len] + (email_data[:body].length > max_email_len ? "..." : "")) : ""
